@@ -128,8 +128,13 @@ class LogStorage:
         errors = []
         for row in rows:
             error = dict(row)
-            if error['context']:
-                error['context'] = json.loads(error['context'])
+            if error.get('context'):
+                try:
+                    error['context'] = json.loads(error['context'])
+                except (json.JSONDecodeError, TypeError):
+                    error['context'] = []
+            else:
+                error['context'] = []
             errors.append(error)
         
         conn.close()
@@ -146,8 +151,13 @@ class LogStorage:
         
         if row:
             error = dict(row)
-            if error['context']:
-                error['context'] = json.loads(error['context'])
+            if error.get('context'):
+                try:
+                    error['context'] = json.loads(error['context'])
+                except (json.JSONDecodeError, TypeError):
+                    error['context'] = []
+            else:
+                error['context'] = []
             conn.close()
             return error
         

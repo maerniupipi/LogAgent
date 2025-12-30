@@ -74,25 +74,45 @@ class LogCollector:
     
     def parse_error_logs(self, logs: str) -> List[Dict]:
         """解析日志，提取错误信息"""
+        # 更精确的错误匹配模式
         error_patterns = [
-            r'ERROR',
-            r'Exception',
-            r'Error',
-            r'FATAL',
-            r'CRITICAL',
-            r'Traceback',
-            r'Failed',
-            r'failed'
+            r'\bERROR\b',           # ERROR 级别日志
+            r'\bFATAL\b',           # FATAL 级别日志
+            r'\bCRITICAL\b',        # CRITICAL 级别日志
+            r'Exception:',          # Java/Python 异常
+            r'Traceback',           # Python 堆栈跟踪
+            r'at\s+[\w\.]+\(',      # Java 堆栈跟踪
+            r'Caused by:',          # Java 异常链
+            r'java\.lang\.\w+Exception',  # Java 异常类
+            r'Failed to',           # 失败消息
+            r'failed to',
+            r'Cannot',              # 无法执行
+            r'Unable to',           # 无法执行
+            r'Could not',           # 无法执行
         ]
         
-        pattern = '|'.join(error_patterns)
-        lines = logs.split('\n')
+        # 排除模式 - 这些不应该被识别为错误
+        exclude_patterns = [
+            r'further occurrences of this error will be logged',  # 提示信息
+            r'error handling',      # 错误处理相关的正常日志
+            r'no error',            # 没有错误
+            r'without error',       # 没有错误
+        ]
         
+        lines = logs.split('\n')
         errors = []
         current_error = None
         
         for i, line in enumerate(lines):
-            if re.search(pattern, line, re.IGNORECASE):
+            # 检查是否应该排除
+            should_exclude = any(re.search(pattern, line, re.IGNORECASE) for pattern in exclude_patterns)
+            if should_exclude:
+                continue
+            
+            # 检查是否匹配错误模式
+            is_error = any(re.search(pattern, line, re.IGNORECASE) for pattern in error_patterns)
+            
+            if is_error:
                 if current_error:
                     errors.append(current_error)
                 

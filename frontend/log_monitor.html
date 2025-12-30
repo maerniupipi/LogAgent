@@ -643,7 +643,8 @@
                 
                 if (result.success) {
                     const error = result.data;
-                    const context = JSON.parse(error.context || '[]');
+                    // context 已经是数组了，不需要再 parse
+                    const context = error.context || [];
                     
                     // 构建完整的日志内容
                     const fullLog = [error.error_content, ...context].join('\n');

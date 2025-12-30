@@ -226,8 +226,20 @@ export default {
         this.collecting = false
       }
     },
-    selectError(error) {
-      this.selectedError = { ...error }
+    async selectError(error) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/errors/${error.id}`)
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        const text = await response.text()
+        console.log('Response text:', text)
+        const data = JSON.parse(text)
+        this.selectedError = data.data
+      } catch (error) {
+        console.error('加载详情失败:', error)
+        alert('加载详情失败: ' + error.message)
+      }
     },
     async updateStatus() {
       try {
