@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "name": "UAT环境",
+    "host": "192.168.100.127",
+    "port": 22,
+    "username": "root",
+    "password": "Fytrd127",
+    "key_file": null,
+    "containers": [
+      "otc-market",
+      "otc-api",
+      "otc-web"
+    ]
+  },
+  {
+    "id": 2,
+    "name": "TEST环境",
+    "host": "192.168.100.126",
+    "port": 22,
+    "username": "root",
+    "password": "Ayfgh126",
+    "key_file": null,
+    "containers": [
+      "otc-market",
+      "otc-api",
+      "otc-web"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "DEV环境",
+    "host": "192.168.100.27",
+    "port": 22,
+    "username": "root",
+    "password": "DR.otc@2022",
+    "key_file": null,
+    "containers": [
+      "otc-market",
+      "otc-api",
+      "otc-web"
+    ]
+  }
+]

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志监控系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #2c3e50;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 8px;
+        }
+
+        .content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filters select, .filters input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .error-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .error-item:hover {
+            background: #f8f9fa;
+        }
+
+        .error-header {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .container-name {
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status.new {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .status.resolved {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .error-content {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e74c3c;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+
+        .analysis {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #4caf50;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 日志监控系统</h1>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="showConfigDialog()">配置管理</button>
+                <button class="btn btn-primary" onclick="showCollectDialog()">采集日志</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">错误总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="newCount">0</div>
+                <div class="stat-label">未处理</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="analyzedCount">0</div>
+                <div class="stat-label">已分析</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="filters">
+                <select id="statusFilter" onchange="loadErrors()">
+                    <option value="">全部状态</option>
+                    <option value="new">未处理</option>
+                    <option value="resolved">已解决</option>
+                </select>
+                <button class="btn btn-secondary" onclick="loadErrors()">刷新</button>
+            </div>
+
+            <div class="error-list" id="errorList">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 采集对话框 -->
+    <div class="modal" id="collectModal">
+        <div class="modal-content">
+            <h2>采集 Docker 日志</h2>
+            
+            <!-- 配置选择 -->
+            <div class="form-group">
+                <label>选择环境</label>
+                <select id="configSelect" onchange="loadContainersFromConfig()">
+                    <option value="">-- 请选择环境 --</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>容器名称</label>
+                <select id="containerSelect">
+                    <option value="">-- 请先选择环境 --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>日志行数</label>
+                <input type="number" id="lines" value="1000">
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="analyze" checked> 使用 AI 分析
+                </label>
+            </div>
+            
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="collectByConfig()">开始采集</button>
+                <button type="button" class="btn btn-secondary" onclick="hideCollectDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配置管理对话框 -->
+    <div class="modal" id="configManageModal">
+        <div class="modal-content">
+            <h2>服务器配置管理</h2>
+            
+            <button class="btn btn-primary" onclick="showAddConfigForm()" style="margin-bottom: 20px;">
+                ➕ 添加新配置
+            </button>
+
+            <div id="configList"></div>
+
+            <!-- 添加配置表单 -->
+            <div id="addConfigForm" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee;">
+                <h3>添加新配置</h3>
+                <div class="form-group">
+                    <label>配置名称</label>
+                    <input type="text" id="configName" placeholder="生产服务器">
+                </div>
+                <div class="form-group">
+                    <label>服务器地址</label>
+                    <input type="text" id="configHost" placeholder="192.168.1.100">
+                </div>
+                <div class="form-group">
+                    <label>端口</label>
+                    <input type="number" id="configPort" value="22">
+                </div>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="configUsername">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="configPassword">
+                </div>
+                <div class="form-group">
+                    <label>容器列表（逗号分隔）</label>
+                    <input type="text" id="configContainers" placeholder="otc-market,otc-api,otc-web">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+                    <button class="btn btn-secondary" onclick="hideAddConfigForm()">取消</button>
+                </div>
+            </div>
+
+            <div class="form-actions" style="margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideConfigDialog()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 错误详情对话框 -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <h2>错误详情</h2>
+            <div id="errorDetail"></div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="hideDetailDialog()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let serverConfigs = [];
+
+        // 页面加载时获取数据
+        loadErrors();
+        loadConfigs();
+
+        // 加载服务器配置
+        async function loadConfigs() {
+            try {
+                const response = await fetch(`${API_BASE}/api/configs`);
+                const data = await response.json();
+                if (data.success) {
+                    serverConfigs = data.data;
+                    updateConfigSelect();
+                }
+            } catch (error) {
+                console.error('加载配置失败:', error);
+            }
+        }
+
+        // 更新配置下拉框
+        function updateConfigSelect() {
+            const select = document.getElementById('configSelect');
+            select.innerHTML = '<option value="">-- 请选择 --</option>' +
+                serverConfigs.map(c => `<option value="${c.id}">${c.name} (${c.host})</option>`).join('');
+        }
+
+        // 从配置加载容器列表
+        function loadContainersFromConfig() {
+            const configId = document.getElementById('configSelect').value;
+            const containerSelect = document.getElementById('containerSelect');
+            
+            if (!configId) {
+                containerSelect.innerHTML = '<option value="">-- 请先选择环境 --</option>';
+                return;
+            }
+
+            const config = serverConfigs.find(c => c.id == configId);
+            if (config && config.containers && config.containers.length > 0) {
+                containerSelect.innerHTML = config.containers.map(c => 
+                    `<option value="${c}">${c}</option>`
+                ).join('');
+            } else {
+                containerSelect.innerHTML = '<option value="">该配置没有容器列表</option>';
+            }
+        }
+
+        // 显示配置管理对话框
+        function showConfigDialog() {
+            displayConfigList();
+            document.getElementById('configManageModal').classList.add('show');
+        }
+
+        function hideConfigDialog() {
+            document.getElementById('configManageModal').classList.remove('show');
+            hideAddConfigForm();
+        }
+
+        // 显示配置列表
+        function displayConfigList() {
+            const list = document.getElementById('configList');
+            
+            if (serverConfigs.length === 0) {
+                list.innerHTML = '<p style="color: #7f8c8d;">暂无配置</p>';
+                return;
+            }
+
+            list.innerHTML = serverConfigs.map(config => `
+                <div style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${config.name}</strong><br>
+                            <span style="color: #7f8c8d; font-size: 13px;">
+                                ${config.username}@${config.host}:${config.port}
+                            </span><br>
+                            ${config.containers && config.containers.length > 0 ? 
+                                `<span style="color: #3498db; font-size: 12px;">容器: ${config.containers.join(', ')}</span>` 
+                                : ''}
+                        </div>
+                        <button class="btn btn-secondary" onclick="deleteConfig(${config.id})" 
+                                style="background: #e74c3c; color: white;">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 显示/隐藏添加配置表单
+        function showAddConfigForm() {
+            document.getElementById('addConfigForm').style.display = 'block';
+        }
+
+        function hideAddConfigForm() {
+            document.getElementById('addConfigForm').style.display = 'none';
+            // 清空表单
+            ['configName', 'configHost', 'configUsername', 'configPassword', 'configContainers'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('configPort').value = '22';
+        }
+
+        // 保存配置
+        async function saveConfig() {
+            const data = {
+                name: document.getElementById('configName').value,
+                host: document.getElementById('configHost').value,
+                port: parseInt(document.getElementById('configPort').value),
+                username: document.getElementById('configUsername').value,
+                password: document.getElementById('configPassword').value,
+                containers: document.getElementById('configContainers').value
+                    .split(',').map(s => s.trim()).filter(s => s)
+            };
+
+            if (!data.name || !data.host || !data.username) {
+                alert('请填写必填项');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/configs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('配置保存成功');
+                    hideAddConfigForm();
+                    await loadConfigs();
+                    displayConfigList();
+                }
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            }
+        }
+
+        // 删除配置
+        async function deleteConfig(configId) {
+            if (!confirm('确定要删除这个配置吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/configs/${configId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('删除成功');
+                    await loadConfigs();
+                    displayConfigList();
+                }
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        // 使用配置采集
+        async function collectByConfig() {
+            const configId = document.getElementById('configSelect').value;
+            const container = document.getElementById('containerSelect').value;
+
+            if (!configId || !container) {
+                alert('请选择环境和容器');
+                return;
+            }
+
+            const data = {
+                config_id: parseInt(configId),
+                container_name: container,
+                lines: parseInt(document.getElementById('lines').value),
+                analyze: document.getElementById('analyze').checked
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/collect-by-config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                alert(result.message || '采集完成');
+                hideCollectDialog();
+                setTimeout(() => loadErrors(), 2000);
+            } catch (error) {
+                alert('采集失败: ' + error.message);
+            }
+        }
+
+        // 加载错误列表
+        async function loadErrors() {
+            const status = document.getElementById('statusFilter').value;
+            const url = `${API_BASE}/api/errors?${status ? 'status=' + status : ''}&limit=100`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayErrors(data.data);
+                    updateStats(data.data);
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('errorList').innerHTML = 
+                    '<div class="loading">加载失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 显示错误列表
+        function displayErrors(errors) {
+            const list = document.getElementById('errorList');
+            
+            if (errors.length === 0) {
+                list.innerHTML = '<div class="loading">暂无错误日志</div>';
+                return;
+            }
+
+            list.innerHTML = errors.map(error => `
+                <div class="error-item" onclick="showErrorDetail(${error.id})">
+                    <div class="error-header">
+                        <span class="container-name">${error.container_name}</span>
+                        <span class="timestamp">${formatTime(error.timestamp || error.created_at)}</span>
+                        <span class="status ${error.status}">${getStatusText(error.status)}</span>
+                    </div>
+                    <div class="error-content">${escapeHtml(error.error_content)}</div>
+                </div>
+            `).join('');
+        }
+
+        // 更新统计
+        function updateStats(errors) {
+            document.getElementById('totalCount').textContent = errors.length;
+            document.getElementById('newCount').textContent = 
+                errors.filter(e => e.status === 'new').length;
+            document.getElementById('analyzedCount').textContent = 
+                errors.filter(e => e.analysis).length;
+        }
+
+        // 显示采集对话框
+        function showCollectDialog() {
+            loadConfigs(); // 刷新配置列表
+            document.getElementById('collectModal').classList.add('show');
+        }
+
+        function hideCollectDialog() {
+            document.getElementById('collectModal').classList.remove('show');
+        }
+
+        // 显示错误详情
+        async function showErrorDetail(errorId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/errors/${errorId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const error = result.data;
+                    const context = JSON.parse(error.context || '[]');
+                    
+                    // 构建完整的日志内容
+                    const fullLog = [error.error_content, ...context].join('\n');
+                    
+                    document.getElementById('errorDetail').innerHTML = `
+                        <div style="margin-bottom: 20px;">
+                            <h3>基本信息</h3>
+                            <p><strong>容器:</strong> ${error.container_name}</p>
+                            <p><strong>时间:</strong> ${error.timestamp || error.created_at}</p>
+                            <p><strong>行号:</strong> ${error.line_number || '-'}</p>
+                            <p><strong>状态:</strong> <span class="status ${error.status}">${getStatusText(error.status)}</span></p>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h3>完整日志</h3>
+                            <pre style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(fullLog)}</pre>
+                        </div>
+                        
+                        ${error.analysis ? `
+                        <div style="margin-bottom: 20px;">
+                            <h3>🤖 AI 分析</h3>
+                            <div class="analysis">${escapeHtml(error.analysis)}</div>
+                        </div>
+                        ` : '<div style="padding: 15px; background: #fff3cd; border-radius: 6px; color: #856404;">⏳ AI 分析中，请稍后刷新查看...</div>'}
+                        
+                        <div style="margin-top: 20px;">
+                            <h3>状态管理</h3>
+                            <select id="statusUpdate" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="new" ${error.status === 'new' ? 'selected' : ''}>未处理</option>
+                                <option value="analyzing" ${error.status === 'analyzing' ? 'selected' : ''}>分析中</option>
+                                <option value="resolved" ${error.status === 'resolved' ? 'selected' : ''}>已解决</option>
+                                <option value="ignored" ${error.status === 'ignored' ? 'selected' : ''}>已忽略</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="updateErrorStatus(${errorId})" style="margin-left: 10px;">更新状态</button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('detailModal').classList.add('show');
+                }
+            } catch (error) {
+                alert('加载详情失败: ' + error.message);
+            }
+        }
+
+        // 更新错误状态
+        async function updateErrorStatus(errorId) {
+            const status = document.getElementById('statusUpdate').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/errors/${errorId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('状态更新成功');
+                    hideDetailDialog();
+                    loadErrors();
+                }
+            } catch (error) {
+                alert('更新失败: ' + error.message);
+            }
+        }
+
+        function hideDetailDialog() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
+
+        // 工具函数
+        function formatTime(time) {
+            if (!time) return '-';
+            return new Date(time).toLocaleString('zh-CN');
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'new': '未处理',
+                'analyzing': '分析中',
+                'resolved': '已解决',
+                'ignored': '已忽略'
+            };
+            return map[status] || status;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
