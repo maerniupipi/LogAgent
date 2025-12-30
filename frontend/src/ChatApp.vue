@@ -1,42 +1,64 @@
 <template>
-  <div class="chat-container">
-    <div class="chat-header">
-      <h1>🤖 LangGraph Agent</h1>
-      <div class="status" :class="{ connected: isConnected }">
-        {{ isConnected ? '已连接' : '未连接' }}
-      </div>
-    </div>
-
-    <div class="chat-messages" ref="messagesContainer">
-      <div v-for="(msg, index) in messages" :key="index" 
-           :class="['message', msg.role]">
-        <div class="message-content">
-          <div class="message-text">{{ msg.content }}</div>
-          <div v-if="msg.tools && msg.tools.length" class="tools-used">
-            🔧 使用工具: {{ msg.tools.join(', ') }}
+  <div class="chat-wrapper">
+    <div class="chat-container">
+      <div class="chat-header">
+        <div class="header-content">
+          <div class="title-section">
+            <div class="icon">💬</div>
+            <h1>AI 助手</h1>
+          </div>
+          <div class="status-badge" :class="{ connected: isConnected }">
+            <span class="status-dot"></span>
+            {{ isConnected ? '在线' : '离线' }}
           </div>
         </div>
       </div>
-      
-      <div v-if="isLoading" class="message assistant">
-        <div class="message-content">
-          <div class="typing-indicator">
-            <span></span><span></span><span></span>
+
+      <div class="chat-messages" ref="messagesContainer">
+        <div v-if="messages.length === 0" class="empty-state">
+          <div class="empty-icon">👋</div>
+          <p>你好！我是 AI 助手</p>
+          <p class="empty-hint">有什么可以帮你的吗？</p>
+        </div>
+        
+        <div v-for="(msg, index) in messages" :key="index" 
+             :class="['message', msg.role]">
+          <div class="message-bubble">
+            <div class="message-text">{{ msg.content }}</div>
+            <div v-if="msg.tools && msg.tools.length" class="tools-badge">
+              <span class="tool-icon">🔧</span>
+              {{ msg.tools.join(', ') }}
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="isLoading" class="message assistant">
+          <div class="message-bubble">
+            <div class="typing-indicator">
+              <span></span><span></span><span></span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="chat-input">
-      <input 
-        v-model="userInput" 
-        @keyup.enter="sendMessage"
-        placeholder="输入消息..."
-        :disabled="isLoading"
-      />
-      <button @click="sendMessage" :disabled="isLoading || !userInput.trim()">
-        {{ isLoading ? '发送中...' : '发送' }}
-      </button>
+      <div class="chat-input-wrapper">
+        <div class="chat-input">
+          <input 
+            v-model="userInput" 
+            @keyup.enter="sendMessage"
+            placeholder="输入消息..."
+            :disabled="isLoading"
+          />
+          <button 
+            @click="sendMessage" 
+            :disabled="isLoading || !userInput.trim()"
+            class="send-button"
+          >
+            <span v-if="!isLoading">↑</span>
+            <span v-else class="loading-spinner"></span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -77,7 +99,6 @@ const connectWebSocket = () => {
   
   ws.value.onopen = () => {
     isConnected.value = true
-    console.log('WebSocket 连接成功')
   }
   
   ws.value.onmessage = (event) => {
@@ -175,53 +196,155 @@ const scrollToBottom = () => {
 </script>
 
 <style scoped>
+.chat-wrapper {
+  width: 100%;
+  max-width: 900px;
+  min-width: 700px;
+  height: 85vh;
+  padding: 20px;
+}
+
 .chat-container {
-  width: 90%;
-  max-width: 800px;
-  height: 80vh;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 28px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
 }
 
 .chat-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 20px;
+  background: rgba(248, 248, 248, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 20px 24px;
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+}
+
 .chat-header h1 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.5px;
 }
 
-.status {
-  padding: 6px 12px;
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  font-size: 14px;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 13px;
+  font-weight: 500;
+  color: #86868b;
+  transition: all 0.3s ease;
 }
 
-.status.connected {
-  background: rgba(76, 175, 80, 0.8);
+.status-badge.connected {
+  background: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.status-badge.connected .status-dot {
+  background: #34c759;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
-  background: #f5f5f5;
+  padding: 24px;
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #1d1d1f;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+}
+
+.empty-state p {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.empty-hint {
+  font-size: 15px !important;
+  opacity: 0.7;
+  font-weight: 400 !important;
 }
 
 .message {
   margin-bottom: 16px;
   display: flex;
+  animation: messageSlide 0.3s ease-out;
+}
+
+@keyframes messageSlide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message.user {
@@ -232,39 +355,51 @@ const scrollToBottom = () => {
   justify-content: flex-start;
 }
 
-.message-content {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 18px;
+.message-bubble {
+  max-width: 75%;
+  padding: 14px 18px;
+  border-radius: 20px;
   word-wrap: break-word;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
-.message.user .message-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.message.user .message-bubble {
+  background: rgba(0, 122, 255, 0.9);
   color: white;
+  border-bottom-right-radius: 6px;
 }
 
-.message.assistant .message-content {
-  background: white;
-  color: #333;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.message.assistant .message-bubble {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1d1d1f;
+  border-bottom-left-radius: 6px;
 }
 
 .message-text {
   line-height: 1.5;
+  font-size: 15px;
 }
 
-.tools-used {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+.tools-badge {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
   font-size: 12px;
   color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-icon {
+  font-size: 14px;
 }
 
 .typing-indicator {
   display: flex;
-  gap: 4px;
+  gap: 5px;
+  padding: 4px 0;
 }
 
 .typing-indicator span {
@@ -286,52 +421,113 @@ const scrollToBottom = () => {
 @keyframes typing {
   0%, 60%, 100% {
     transform: translateY(0);
+    opacity: 0.7;
   }
   30% {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
+    opacity: 1;
   }
 }
 
+.chat-input-wrapper {
+  padding: 16px 20px 20px;
+  background: rgba(248, 248, 248, 0.95);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
 .chat-input {
-  padding: 20px;
-  background: white;
-  border-top: 1px solid #e0e0e0;
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 8px 8px 8px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .chat-input input {
   flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 24px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.3s;
-}
-
-.chat-input input:focus {
-  border-color: #667eea;
-}
-
-.chat-input button {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
   border: none;
-  border-radius: 24px;
-  font-size: 14px;
+  background: transparent;
+  font-size: 15px;
+  color: #1d1d1f;
+  outline: none;
+  padding: 8px 0;
+}
+
+.chat-input input::placeholder {
+  color: #86868b;
+}
+
+.send-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #007aff;
+  color: white;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, opacity 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.chat-input button:hover:not(:disabled) {
-  transform: translateY(-2px);
+.send-button:hover:not(:disabled) {
+  background: #0051d5;
+  transform: scale(1.05);
 }
 
-.chat-input button:disabled {
-  opacity: 0.5;
+.send-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.send-button:disabled {
+  background: #c7c7cc;
   cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .chat-wrapper {
+    min-width: auto;
+    padding: 10px;
+    height: 90vh;
+  }
+  
+  .chat-container {
+    border-radius: 20px;
+  }
+  
+  .chat-header {
+    padding: 16px 20px;
+  }
+  
+  .chat-header h1 {
+    font-size: 18px;
+  }
+  
+  .message-bubble {
+    max-width: 85%;
+  }
+  
+  .chat-input-wrapper {
+    padding: 12px 16px 16px;
+  }
 }
 </style>
